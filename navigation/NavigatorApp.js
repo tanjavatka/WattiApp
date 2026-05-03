@@ -17,11 +17,11 @@ export default function NavigatorApp() {
           tabBarIcon: ({ color, size }) => {
             let iconName;
 
-            if (route.name === 'Today') {
+            if (route.name === 'Tänään') {
               iconName = 'flash-outline';
-            } else if (route.name === 'Tomorrow') {
+            } else if (route.name === 'Huomenna') {
               iconName = 'flash-outline';
-            } else if (route.name === 'Settings') {
+            } else if (route.name === 'Asetukset') {
               iconName = 'settings-outline';
             }
 
@@ -29,9 +29,9 @@ export default function NavigatorApp() {
           },
         })}
       >
-        <Tab.Screen name="Today" component={TodayScreen} />
-        <Tab.Screen name="Tomorrow" component={TomorrowScreen} />
-        <Tab.Screen name="Settings" component={SettingScreen} />
+        <Tab.Screen name="Tänään" component={TodayScreen} />
+        <Tab.Screen name="Huomenna" component={TomorrowScreen} />
+        <Tab.Screen name="Asetukset" component={SettingScreen} />
       </Tab.Navigator>
     </NavigationContainer>
   );
