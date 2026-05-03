@@ -3,11 +3,29 @@ import { StyleSheet, Text, View, FlatList } from 'react-native';
 import { handleFetchTodayPrices } from '../services/api';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
+import { getMinPrice, getMaxPrice, getAveragePrice, getCurrentPrice, getPriceLevel } from '../utils/priceHelper';
+import { priceColors } from '../utils/colors';
+
 
 export default function TodayScreen() {
 
+  // STATE
   const [prices, setPrices] = useState([]);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
+  // DATA + LASKENTA -> priceHelper.js
+  // haetaan halvin, kallein, keski, nykyinen hinta
+  const minPrice = getMinPrice(prices);
+  const maxPrice = getMaxPrice(prices);
+  const averagePrice = getAveragePrice(prices);
+  const currentPrice = getCurrentPrice(prices, currentTime);
+
+  // järjestetään hinnat aikajärjestykseen
+  const sortedPrices = [...prices].sort(
+    (a, b) => new Date(a.aikaleima_suomi) - new Date(b.aikaleima_suomi)
+  );
+
+  // USeEFFECT API
   // Screen avautuu -> käynnistyy useEffect()
   useEffect(() => {
     const loadData = async () => {
@@ -21,41 +39,121 @@ export default function TodayScreen() {
     loadData();
   }, []);
 
+  // USeEFFECT KELLO
+  // Päivitetään nykyinen aika
+  // Päivittää currentTime -staten 60s välein
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // testausta tulostuuko data
   console.log("PRICES:", prices);
 
-  const sortedPrices = [...prices].sort(
-    (a, b) => new Date(a.aikaleima_suomi) - new Date(b.aikaleima_suomi)
-  );
+  // RENDERITEM
+  // Näytetään data riveittäin -logiikka
+  const renderItem = ({ item }) => {
 
+    const price = item.hinta * 1.255;
+    const level = getPriceLevel(price);
+    const color = priceColors[level];
+
+    return (
+      <View style={[styles.listRow, { borderLeftColor: color, borderLeftWidth: 5 }]}>
+
+        <Text
+          style={styles.time}>
+          Klo {item.aikaleima_suomi.split("T")[1].slice(0, 5)}
+        </Text>
+
+        <Text style={styles.price}>
+          {price.toFixed(2)} c/kWh
+        </Text>
+
+      </View>
+    );
+  };
+
+  // RETURN - UI
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
-        <Text>Today Prices</Text>
-        <FlatList
-          // flatlist näyttää datan prices (useStatesta)
-          data={sortedPrices}
-          // keyExtractor={(item) => item.aikaleima_suomi} 
+        {/* <Text>Hinnat tänään</Text> */}
 
-          renderItem={({ item }) => (
+        {/* Hinta NYT */}
+        <View style={styles.currentPriceCard}>
+          <Text style={styles.currentLabel}>
+            Hinta juuri nyt
+            {/* Hinta juuri nyt klo {currentTime.toLocaleTimeString('fi-FI', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })} */}
+          </Text>
 
-            <View style={styles.card}>
-              <View style={styles.row}>
-                <Text
-                  style={styles.time}>
-                  {item.aikaleima_suomi.split("T")[1].slice(0, 5)}
-                </Text>
-                <Text style={styles.price}>{(item.hinta * 1.255).toFixed(2)} c/kWh</Text>
-              </View>
+          <Text style={styles.currentPrice}>
+            {currentPrice ? `${currentPrice} c/kWh` : 'Ladataan...'}
+          </Text>
+        </View>
+
+        {/* Kortti jossa näkyy ALIN - YLIN - KESKI hinnat */}
+        <View style={styles.statsCard}>
+
+          <View style={styles.topRow}>
+
+            {/* tuodaan näytölle päivän ALIN hinta */}
+            <View style={styles.statBlock}>
+              <Text style={styles.statTitle}>Päivän alin</Text>
+              <Text style={styles.statValue}>{(minPrice * 1.255).toFixed(2)} c/kWh</Text>
             </View>
-          )}
-        />
+
+            {/* tuodaan näytölle päivän YLIN hinta */}
+            <View style={styles.statBlock}>
+              <Text style={styles.statTitle}>Päivän ylin</Text>
+              <Text style={styles.statValue}>{(maxPrice * 1.255).toFixed(2)} c/kWh</Text>
+            </View>
+
+          </View>
+
+          <View style={styles.divider} />
+
+          {/* tuodaan näytölle päivän KESKI hinta */}
+          <View style={styles.averageContainer}>
+            <Text style={styles.statTitle}>Keskiarvo</Text>
+            <Text style={styles.statValue}>{averagePrice} c/kWh</Text>
+          </View>
+        </View>
+
+        {/* FLATLIST : kello-hinta listaus samaan korttiin */}
+        <View style={styles.bigCard}>
+          <FlatList
+            // flatlist näyttää datan prices (useStatesta) sortattuna
+            data={sortedPrices}
+            // keyExtractor={(item) => item.aikaleima_suomi} ??
+
+            // näytetään data riveittäin
+            renderItem={renderItem}
+
+            // erotetaan eri aika-kello parit väliviivalla
+            ItemSeparatorComponent={() => (
+              <View style={styles.separator} />
+            )}
+            showsVerticalScrollIndicator={false}
+          />
+        </View>
+
         <StatusBar style="auto" />
       </SafeAreaView>
     </SafeAreaProvider>
   );
 }
 
+// STYLES
 const styles = StyleSheet.create({
+
+  // SIVUSTON STYLE
   container: {
     flex: 1,
     backgroundColor: '#fff',
@@ -64,19 +162,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: 35,
   },
 
-  card: {
-    backgroundColor: "#fff",
-    padding: 15,
-    marginVertical: 6,
+  // FLATLIST STYLE
+  bigCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    elevation: 4,
+
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+
+    flex: 1,
+  },
+
+  listRow: {
+    flexDirection: 'row',
+    justifyContent: "space-evenly",
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    backgroundColor: '#fff',
+    marginVertical: 4,
     borderRadius: 10,
+  },
 
-    width: "100%",
-
-    // varjo (iOS + Android)
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
+  separator: {
+    height: 1,
+    backgroundColor: '#eee',
   },
 
   time: {
@@ -85,13 +199,80 @@ const styles = StyleSheet.create({
   },
 
   price: {
-    fontSize: 16,
+    fontSize: 14,
     // fontWeight: "bold",
   },
 
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-evenly",
-    alignItems: "center",
+  // YLIN - ALIN - KESKIHINTA
+  statsCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 20,
+    elevation: 4,
+
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+  },
+
+  topRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+
+  statBlock: {
+    flex: 1,
+    alignItems: 'center',
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: '#eee',
+    marginVertical: 15,
+  },
+
+  averageContainer: {
+    alignItems: 'center',
+  },
+
+  statTitle: {
+    fontSize: 14,
+    color: '#666',
+  },
+
+  statValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+
+  averageValue: {
+    fontSize: 28,
+    fontWeight: 'bold',
+  },
+
+  // HINTA NYT 
+  currentPriceCard: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 22,
+    marginBottom: 20,
+    alignItems: 'center',
+    elevation: 5,
+
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+  },
+
+  currentLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+
+  currentPrice: {
+    fontSize: 32,
+    fontWeight: 'bold',
   },
 });
