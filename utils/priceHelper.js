@@ -28,8 +28,17 @@ export const getAveragePrice = (prices) => {
 export const getCurrentPrice = (prices, now) => {
   if (!prices || prices.length === 0) return null;
 
+  // järjestetään hinnat aikajärjestykseen
+  const sortedPrices = [...prices].sort(
+    (a, b) => new Date(a.aikaleima_utc + "Z") - new Date(b.aikaleima_utc + "Z")
+  );
+
+  console.log("NOW:", now);
+
   const currentItem = prices.find((item) => {
-    const itemTime = new Date(item.aikaleima_suomi);
+    const itemTime = new Date(item.aikaleima_utc + "Z");
+
+    console.log("ITEM:", itemTime);
 
     const next15min = new Date(itemTime);
     next15min.setMinutes(next15min.getMinutes() + 15);
@@ -47,4 +56,15 @@ export const getPriceLevel = (price) => {
   if (value < 3) return 'cheap';
   if (value < 10) return 'medium';
   return 'expensive';
+};
+
+// Hakee päiväyksen - tyyli: su 3.5.
+export const getDateLabel = (data) => {
+  if (!data || data.length === 0) return '';
+
+  return new Date(data[0].aikaleima_utc + "Z").toLocaleDateString('fi-FI', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'numeric',
+  });
 };
