@@ -15,7 +15,7 @@ const fetchPricesByDate = async (date) => {
 };
 
 export const handleFetchTodayPrices = () => {
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toLocaleDateString("sv-SE");
 
   return fetchPricesByDate(today);
 };
@@ -24,7 +24,7 @@ export const handleFetchTomorrowPrices = () => {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const tomorrowDate = tomorrow.toISOString().split("T")[0];
+  const tomorrowDate = tomorrow.toLocaleDateString("sv-SE");
 
   return fetchPricesByDate(tomorrowDate);
 };
