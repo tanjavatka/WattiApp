@@ -36,3 +36,5 @@ export default function NavigatorApp() {
     </NavigationContainer>
   );
 }
+
+// muuta ikonien väriä !
