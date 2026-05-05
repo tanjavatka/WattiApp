@@ -1,11 +1,11 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, FlatList } from 'react-native';
+import { StyleSheet, Text, View, FlatList, ScrollView } from 'react-native';
 import { handleFetchTodayPrices } from '../services/api';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import { getMinPrice, getMaxPrice, getAveragePrice, getCurrentPrice, getPriceLevel } from '../utils/priceHelper';
 import { priceColors } from '../utils/colors';
-
+import PriceChart from '../components/PriceChart';
 
 export default function TodayScreen() {
 
@@ -22,11 +22,11 @@ export default function TodayScreen() {
 
   // järjestetään hinnat aikajärjestykseen
   const sortedPrices = [...prices].sort(
-    (a, b) => new Date(a.aikaleima_suomi) - new Date(b.aikaleima_suomi)
+    (a, b) => new Date(a.aikaleima_utc + "Z") - new Date(b.aikaleima_utc + "Z")
   );
 
   // USeEFFECT API
-  // Screen avautuu -> käynnistyy useEffect()
+  // Screen avautuu -> käynnistyy useEffect() -> haetaan käytettävä data
   useEffect(() => {
     const loadData = async () => {
       // kutsuu api.js tiedostosta api hakua ja tallentaa sen result muuttujaan.
@@ -42,6 +42,7 @@ export default function TodayScreen() {
   // USeEFFECT KELLO
   // Päivitetään nykyinen aika
   // Päivittää currentTime -staten 60s välein
+  // Käyttö 'Hinta juuri nyt' -kortissa
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
@@ -55,6 +56,7 @@ export default function TodayScreen() {
 
   // RENDERITEM
   // Näytetään data riveittäin -logiikka
+  // vartti aika-hinta parit flatlistassa + hintatasojen värit
   const renderItem = ({ item }) => {
 
     const price = item.hinta * 1.255;
@@ -79,74 +81,85 @@ export default function TodayScreen() {
 
   // RETURN - UI
   return (
+
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
-        {/* <Text>Hinnat tänään</Text> */}
+        <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
 
-        {/* Hinta NYT */}
-        <View style={styles.currentPriceCard}>
-          <Text style={styles.currentLabel}>
-            Hinta juuri nyt
-            {/* Hinta juuri nyt klo {currentTime.toLocaleTimeString('fi-FI', {
+          {/* <Text>Hinnat tänään</Text> */}
+
+          {/* Hinta NYT */}
+          <View style={styles.currentPriceCard}>
+            <Text style={styles.currentLabel}>
+              Hinta juuri nyt
+              {/* Hinta juuri nyt klo {currentTime.toLocaleTimeString('fi-FI', {
               hour: '2-digit',
               minute: '2-digit',
             })} */}
-          </Text>
+            </Text>
 
-          <Text style={styles.currentPrice}>
-            {currentPrice ? `${currentPrice} c/kWh` : 'Ladataan...'}
-          </Text>
-        </View>
-
-        {/* Kortti jossa näkyy ALIN - YLIN - KESKI hinnat */}
-        <View style={styles.statsCard}>
-
-          <View style={styles.topRow}>
-
-            {/* tuodaan näytölle päivän ALIN hinta */}
-            <View style={styles.statBlock}>
-              <Text style={styles.statTitle}>Päivän alin</Text>
-              <Text style={styles.statValue}>{(minPrice * 1.255).toFixed(2)} c/kWh</Text>
-            </View>
-
-            {/* tuodaan näytölle päivän YLIN hinta */}
-            <View style={styles.statBlock}>
-              <Text style={styles.statTitle}>Päivän ylin</Text>
-              <Text style={styles.statValue}>{(maxPrice * 1.255).toFixed(2)} c/kWh</Text>
-            </View>
-
+            <Text style={styles.currentPrice}>
+              {currentPrice ? `${currentPrice} c/kWh` : 'Ladataan...'}
+            </Text>
           </View>
 
-          <View style={styles.divider} />
+          {/* Kortti jossa näkyy ALIN - YLIN - KESKI hinnat */}
+          <View style={styles.statsCard}>
 
-          {/* tuodaan näytölle päivän KESKI hinta */}
-          <View style={styles.averageContainer}>
-            <Text style={styles.statTitle}>Keskiarvo</Text>
-            <Text style={styles.statValue}>{averagePrice} c/kWh</Text>
+            <View style={styles.topRow}>
+
+              {/* tuodaan näytölle päivän ALIN hinta */}
+              <View style={styles.statBlock}>
+                <Text style={styles.statTitle}>Päivän alin</Text>
+                <Text style={styles.statValue}>{(minPrice * 1.255).toFixed(2)} c/kWh</Text>
+              </View>
+
+              {/* tuodaan näytölle päivän YLIN hinta */}
+              <View style={styles.statBlock}>
+                <Text style={styles.statTitle}>Päivän ylin</Text>
+                <Text style={styles.statValue}>{(maxPrice * 1.255).toFixed(2)} c/kWh</Text>
+              </View>
+
+            </View>
+
+            <View style={styles.divider} />
+
+            {/* tuodaan näytölle päivän KESKI hinta */}
+            <View style={styles.averageContainer}>
+              <Text style={styles.statTitle}>Keskihinta</Text>
+              <Text style={styles.statValue}>{averagePrice} c/kWh</Text>
+            </View>
           </View>
-        </View>
 
-        {/* FLATLIST : kello-hinta listaus samaan korttiin */}
-        <View style={styles.bigCard}>
-          <FlatList
-            // flatlist näyttää datan prices (useStatesta) sortattuna
-            data={sortedPrices}
-            // keyExtractor={(item) => item.aikaleima_suomi} ??
+          {/* BARCHART */}
+          {/* Aika-hinta parit pylväsdiagrammissa | data + logiikka omassa tiedostossa */}
+          <PriceChart data={sortedPrices} />
 
-            // näytetään data riveittäin
-            renderItem={renderItem}
+          {/* FLATLIST : kello-hinta listaus samaan korttiin */}
+          <View style={styles.bigCard}>
+            <FlatList
+              // flatlist näyttää datan prices (useStatesta) sortattuna
+              data={sortedPrices}
+              // keyExtractor={(item) => item.aikaleima_suomi} ??
 
-            // erotetaan eri aika-kello parit väliviivalla
-            ItemSeparatorComponent={() => (
-              <View style={styles.separator} />
-            )}
-            showsVerticalScrollIndicator={false}
-          />
-        </View>
+              // näytetään data riveittäin
+              renderItem={renderItem}
 
-        <StatusBar style="auto" />
+              // erotetaan eri aika-kello parit väliviivalla
+              ItemSeparatorComponent={() => (
+                <View style={styles.separator} />
+              )}
+              showsVerticalScrollIndicator={false}
+
+              scrollEnabled={false}
+            />
+          </View>
+
+          <StatusBar style="auto" />
+        </ScrollView>
       </SafeAreaView>
     </SafeAreaProvider>
+
   );
 }
 
@@ -156,10 +169,11 @@ const styles = StyleSheet.create({
   // SIVUSTON STYLE
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F4F7FA', // '#fff'. '#cfc402'
     alignItems: 'stretch',
     justifyContent: 'center',
-    paddingHorizontal: 35,
+    paddingHorizontal: 10,
+    paddingBottom: 10,
   },
 
   // FLATLIST STYLE
@@ -208,7 +222,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 18,
-    marginBottom: 20,
+    marginBottom: 10,
     elevation: 4,
 
     shadowColor: '#000',
@@ -256,7 +270,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 18,
     padding: 22,
-    marginBottom: 20,
+    marginVertical: 20,
     alignItems: 'center',
     elevation: 5,
 
