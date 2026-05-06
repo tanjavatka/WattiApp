@@ -10,12 +10,18 @@ const fetchPricesByDate = async (date) => {
     // const text = await response.text();
     // console.log("RAW RESPONSE:", text);
 
+    // tarkista status
+    if (!response.ok) {
+      console.log("API error status:", response.status);
+      return [];
+    }
+
     const data = await response.json();
 
     return data;
 
   } catch (error) {
-    console.log(error);
+    console.log("Fetch error: ", error);
     return [];
   }
 };
