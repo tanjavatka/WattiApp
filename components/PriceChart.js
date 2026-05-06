@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   },
 });
 
-//   NAPPULAT
+//   NAPPULAT - OIKEALLE / VASEMMALLE - BAR CHARTTIIN
 // return (
 //     <View>
 
