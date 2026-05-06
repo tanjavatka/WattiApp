@@ -4,14 +4,19 @@ import { useState } from 'react';
 import { StyleSheet, Dimensions, View, Text } from 'react-native';
 import { BarChart } from 'react-native-chart-kit';
 import Slider from '@react-native-community/slider';
-import { getDateLabel } from '../utils/priceHelper';
-import { getPriceLevel } from '../utils/priceHelper';
+import { getDateLabel, getPriceLevel } from '../utils/priceHelper';
 import { priceColors } from '../utils/colors';
 
 
 const screenWidth = Dimensions.get("window").width;
 
-export default function PriceChart({ data }) {
+export default function PriceChart({ data = [], theme }) {
+
+  // SAFE FALLBACK (ESTÄÄ CRASHIT)
+  const safeTheme = theme || {
+    card: "#fff",
+    text: "#000"
+  };
 
   const [startIndex, setStartIndex] = useState(0);
 
@@ -54,13 +59,15 @@ export default function PriceChart({ data }) {
   };
 
   return (
-    <View style={[styles.chartCard, styles.chartWrapper, { marginVertical: 10 }]}>
+    <View style={[styles.chartCard,
+    styles.chartWrapper,
+    { backgroundColor: safeTheme.card }]}>
 
-      <Text style={styles.chartTitle}>
+      <Text style={[styles.chartTitle, { color: safeTheme.text }]}>
         {dateLabel}
       </Text>
 
-      <Text style={styles.axisLabel}>
+      <Text style={[styles.axisLabel, { color: safeTheme.text }]}>
         c/kWh
       </Text>
 
@@ -79,14 +86,13 @@ export default function PriceChart({ data }) {
         flatColor={true}
 
         chartConfig={{
-          backgroundColor: "#fff",
-          backgroundGradientFrom: "#fff",
-          backgroundGradientTo: "#fff",
+          backgroundColor: safeTheme.card,
+          backgroundGradientFrom: safeTheme.card,
+          backgroundGradientTo: safeTheme.card,
 
           decimalPlaces: 1, // hinnan desimaalien määrä
-          // color: () => "#4CAF50",
-          color: () => "#000",
-          labelColor: () => "#666",
+          color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+          labelColor: () => safeTheme.text,
 
           barPercentage: 0.3, // pylväiden leveys
 
