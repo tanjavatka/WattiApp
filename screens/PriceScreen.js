@@ -49,7 +49,7 @@ export default function PriceScreen({ mode, theme }) {
     return () => clearInterval(interval);
   }, []);
 
-  // TOMORROW LOCK - näytetään teksti jos kello on liian vähän
+  // TOMORROW LOCK - näytetään teksti jos kello on liian vähän (early return)
   if (mode === "tomorrow" && !isTomorrowAvailable()) {
     return (
       <SafeAreaProvider>
