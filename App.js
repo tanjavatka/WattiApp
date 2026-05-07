@@ -6,9 +6,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function App() {
 
+  // true = tumma / false = vaalea
   const [isDark, setIsDark] = useState(false);
 
-  // LUE TALLENNETTU TEEMA - puhelimen / sovelluksen muistista
+  // LUE TALLENNETTU TEEMA - paikallisesta muistista
   useEffect(() => {
     const loadTheme = async () => {
       try {
